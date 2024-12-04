@@ -1,0 +1,29 @@
+Scop lucrare:
+	Realizarea unei aplicații destinate capturii și analizei traficului dintr-o rețea de calculatoare utilizând  un framework (JPcap, etc) pentru captarea pachetelor, generarea de statistici in timp real bazate pe acestea si vizualizarea de la distanta (remote) a statisticilor. Aplicația dezvoltata este capabila sa furnizeze informațiile necesare unui administrator de rețea pentru a monitoriza traficul din rețea, salvarea datelor obținute cat și incarcarea lor pentru o comparație ulterioara.
+
+Cerinte functionale:
+	- Identificarea interfețelor de rețea disponibile pe calculator și afișarea informațiilor despre acestea
+	- Capturarea pachetelor de pe una sau mai multe interfețe
+	- Afișarea informațiilor despre pachete
+	- Analizarea principalelor protocoale: IPv4 si IPv6, TCP,UDP, ICMP
+	- Împărțirea traficului pe fluxuri (identificate dupa IPsrc, Portsrc, IPdst, Portdst, Protocol) sau pe clase de trafic (Type of Traffic sau DSCP sau 		  IPsrc/IPdst sau Portsrc/Portdst,etc)
+	- Filtrarea traficului dupa un anumit criteriu
+	- Captura pe o durata de timp definita
+	- Generarea de statistici in timp real
+	- Salvarea datelor (meta-date -headere) in fișier in format xml sau csv sau PCAP
+	- Incarcarea datelor din fișier și afișarea lor
+	- Vizualizarea datelor de la distanta (remote) prin interfata web
+ 
+Cerintele non-functionale:
+	- Performanța: timp acceptabil de procesare
+	- Scalabilitate: sistemul trebuie sa poata fi extins cu usurinta
+	- Flexibilitate: posibilitatea integrării altor funcționalități
+	- Robustete: sistemul trebuie sa fie pregatit sa raspunda in situatii neasteptate
+	- Persistenta datelor: datele sa fie disponibile in timpul capturii cat și după oprire
+
+
+Pentru 06.12.2024:
+	- Studiu bibliografic:
+		- Definire arhitectura generala
+		- Alegere tehnologii pentru dezvoltarea proiectului (ex. Apache Kafka cu ElasticSearch si Kibana, SQL like databases)
+	- Partea de definire de arhitectura, tehnologii si o schita de studiu bibliogragifc
