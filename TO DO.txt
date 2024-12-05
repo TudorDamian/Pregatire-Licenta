@@ -1,3 +1,7 @@
+Propun sa fie tema protocols and network monitoring tool (un sistem de captura de trafic si analiza a acestuia).
+Propun sa parcurgi un tutorial online cu wireshark, sa vezi cum merge un asemenea tool si sa il documentezi (cateva pagini cu functionalitatile acestuia)
+Apoi, sa studiezi - de la link-urile (Poti gasi informatii bune (carti/articole online) aici: scholar.google.com. Se pot descarca (daca nu sunt) free de aici: Carti: https://libgen.is/, Articole: https://www.sci-hub.se/) si cautare online, ce protocols and network monitoring tools exista pe piata si sa le documentezi si pe acelea.
+
 Scop lucrare:
 	Realizarea unei aplicații destinate capturii și analizei traficului dintr-o rețea de calculatoare utilizând  un framework (JPcap, etc) pentru captarea pachetelor, generarea de statistici in timp real bazate pe acestea si vizualizarea de la distanta (remote) a statisticilor. Aplicația dezvoltata este capabila sa furnizeze informațiile necesare unui administrator de rețea pentru a monitoriza traficul din rețea, salvarea datelor obținute cat și incarcarea lor pentru o comparație ulterioara.
 
