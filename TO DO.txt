@@ -31,3 +31,11 @@ Pentru 06.12.2024:
 		- Definire arhitectura generala
 		- Alegere tehnologii pentru dezvoltarea proiectului (ex. Apache Kafka cu ElasticSearch si Kibana, SQL like databases)
 	- Partea de definire de arhitectura, tehnologii si o schita de studiu bibliogragifc
+
+
+Pentru dupa sesiune:
+	- Sa ii dau un semn 
+	- Continui cu implementarea, si incercarea de tehnologii
+
+
+
