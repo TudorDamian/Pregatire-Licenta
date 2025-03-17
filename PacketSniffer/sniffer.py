@@ -46,8 +46,16 @@ def packet_callback(packet):
             time = f"{round(packet.time - start_time, 6):.6f}"  # Normalize time to start from 0
 
         packet_counter += 1  # Increment packet index
-        src = packet[scapy.IP].src if packet.haslayer(scapy.IP) else "N/A"
-        dst = packet[scapy.IP].dst if packet.haslayer(scapy.IP) else "N/A"
+        # Extract source and destination IPs, supporting both IPv4 and IPv6
+        if packet.haslayer(scapy.IP):
+            src = packet[scapy.IP].src
+            dst = packet[scapy.IP].dst
+        elif packet.haslayer(scapy.IPv6):  # Check for IPv6
+            src = packet[scapy.IPv6].src
+            dst = packet[scapy.IPv6].dst
+        else:
+            src = "N/A"
+            dst = "N/A"
         length = len(packet)
 
         # Initialize protocol and info
@@ -64,55 +72,6 @@ def packet_callback(packet):
                 info = f"Who has {packet[scapy.ARP].pdst}? Tell {packet[scapy.ARP].psrc}"
             elif arp_op == 2:  # ARP reply
                 info = f"{packet[scapy.ARP].psrc} is at {packet[scapy.ARP].hwsrc}"
-
-        # # Check for TCP
-        # elif packet.haslayer(scapy.TCP):
-        #     proto = "TCP"
-        #     src_port = packet[scapy.TCP].sport
-        #     dst_port = packet[scapy.TCP].dport
-        #
-        #     # Extract TCP flags
-        #     flags = []
-        #     if packet[scapy.TCP].flags & 0x01:  # FIN flag
-        #         flags.append("FIN")
-        #     if packet[scapy.TCP].flags & 0x02:  # SYN flag
-        #         flags.append("SYN")
-        #     if packet[scapy.TCP].flags & 0x04:  # RST flag
-        #         flags.append("RST")
-        #     if packet[scapy.TCP].flags & 0x08:  # PSH flag
-        #         flags.append("PSH")
-        #     if packet[scapy.TCP].flags & 0x10:  # ACK flag
-        #         flags.append("ACK")
-        #     if packet[scapy.TCP].flags & 0x20:  # URG flag
-        #         flags.append("URG")
-        #     if packet[scapy.TCP].flags & 0x40:  # ECE flag
-        #         flags.append("ECE")
-        #     if packet[scapy.TCP].flags & 0x80:  # CWR flag
-        #         flags.append("CWR")
-        #
-        #     # Format the flags as a comma-separated string
-        #     flags_str = ", ".join(flags)
-        #
-        #     # Get raw sequence and acknowledgment numbers
-        #     raw_seq = packet[scapy.TCP].seq
-        #     raw_ack = packet[scapy.TCP].ack
-        #
-        #     # Calculate relative sequence and acknowledgment numbers
-        #     connection_key = (src, src_port, dst, dst_port)
-        #     if connection_key not in connection_isn:
-        #         # If this is the first packet in the connection, store the ISN
-        #         connection_isn[connection_key] = raw_seq
-        #
-        #     # Calculate relative sequence and acknowledgment numbers
-        #     relative_seq = raw_seq - connection_isn[connection_key]
-        #     relative_ack = raw_ack - connection_isn[connection_key]
-        #
-        #     # Extract window size and TCP payload length
-        #     win = packet[scapy.TCP].window
-        #     tcp_len = len(packet[scapy.TCP].payload)  # Length of TCP payload
-        #
-        #     # Format the info string
-        #     info = f"{src_port} -> {dst_port} [{flags_str}] Seq={relative_seq} Ack={relative_ack} Win={win} Len={tcp_len}"
 
         # Check for TCP
         elif packet.haslayer(scapy.TCP):
