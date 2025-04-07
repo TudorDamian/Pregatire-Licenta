@@ -38,4 +38,7 @@ Pentru dupa sesiune:
 	- Continui cu implementarea, si incercarea de tehnologii
 
 
-
+Pentru 09.04.2025 ora 12:30: 
+	-testare cu iperf
+	-adaugare referinte, fisier separate pentru bibliografie
+	-avansare cu implementare si daca se poate capoitolul 4
