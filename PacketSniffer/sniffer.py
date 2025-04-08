@@ -5,6 +5,7 @@ import scapy.all as scapy
 from scapy.all import wrpcap
 import psutil
 from datetime import datetime
+import re
 
 # Global variables
 global start_time, sniffing, sniff_thread, capture_duration, packet_counter
@@ -157,6 +158,62 @@ def packet_callback(packet):
         print("Error processing packet:", e)
 
 
+def format_packet_info(pkt):
+    try:
+        if pkt.haslayer(scapy.ARP):
+            op = pkt[scapy.ARP].op
+            if op == 1:
+                return f"Who has {pkt[scapy.ARP].pdst}? Tell {pkt[scapy.ARP].psrc}"
+            elif op == 2:
+                return f"{pkt[scapy.ARP].psrc} is at {pkt[scapy.ARP].hwsrc}"
+
+        elif pkt.haslayer(scapy.TCP):
+            src_port = pkt[scapy.TCP].sport
+            dst_port = pkt[scapy.TCP].dport
+
+            flags = []
+            flag_dict = {
+                0x01: "FIN", 0x02: "SYN", 0x04: "RST", 0x08: "PSH",
+                0x10: "ACK", 0x20: "URG", 0x40: "ECE", 0x80: "CWR"
+            }
+            for flag, name in flag_dict.items():
+                if pkt[scapy.TCP].flags & flag:
+                    flags.append(name)
+            flags_str = ", ".join(flags)
+
+            raw_seq = pkt[scapy.TCP].seq
+            raw_ack = pkt[scapy.TCP].ack
+            fwd_key = (pkt[scapy.IP].src, src_port, pkt[scapy.IP].dst, dst_port)
+            rev_key = (pkt[scapy.IP].dst, dst_port, pkt[scapy.IP].src, src_port)
+            if fwd_key not in connection_isn:
+                connection_isn[fwd_key] = raw_seq
+            if rev_key not in connection_isn:
+                connection_isn[rev_key] = raw_ack
+            relative_seq = raw_seq - connection_isn[fwd_key]
+            relative_ack = raw_ack - connection_isn.get(rev_key, raw_ack)
+            win = pkt[scapy.TCP].window
+            tcp_len = len(pkt[scapy.TCP].payload)
+
+            return f"{src_port} -> {dst_port} [{flags_str}] Seq={relative_seq} Ack={relative_ack} Win={win} Len={tcp_len}"
+
+        elif pkt.haslayer(scapy.UDP):
+            sport = pkt[scapy.UDP].sport
+            dport = pkt[scapy.UDP].dport
+            return f"{sport} -> {dport} Len={len(pkt) - 28}"
+
+        elif pkt.haslayer(scapy.ICMP):
+            return pkt.sprintf("%ICMP.type%")
+
+        elif pkt.haslayer(scapy.IPv6):
+            return "IPv6 Packet"
+
+        else:
+            return pkt.summary()
+
+    except Exception as e:
+        return f"Parse error: {e}"
+
+
 def show_packet_details(event):
     selected = table.focus()
     if not selected:
@@ -247,9 +304,11 @@ def start_capture(interface, duration):
     toolbar_start_btn.config(state=tk.DISABLED)
     toolbar_stop_btn.config(state=tk.NORMAL)
 
-    user_filter = filter_var.get().strip()
-    if user_filter.lower().startswith("apply"):
+    raw_filter = filter_var.get().strip()
+    if raw_filter.lower().startswith("apply") or raw_filter == "":
         user_filter = ""
+    else:
+        user_filter = convert_expression_to_bpf(raw_filter)
 
     if duration > 0:
         threading.Timer(duration, stop_sniffing).start()
@@ -273,6 +332,9 @@ def start_sniffing():
     capture_duration = 0  # Always infinite
     if selected_interface:
         clear_table()  # Clear the table before starting a new capture
+        user_filter = filter_var.get().strip()
+        if user_filter.lower().startswith("apply"):
+            user_filter = ""
         sniff_thread = threading.Thread(target=start_capture, args=(selected_interface, capture_duration), daemon=True)
         sniff_thread.start()
         toolbar_start_btn.config(state=tk.DISABLED)
@@ -286,6 +348,15 @@ def stop_sniffing():
     sniffing = False
     toolbar_start_btn.config(state=tk.NORMAL)
     toolbar_stop_btn.config(state=tk.DISABLED)
+
+
+# Restart sniffing function
+def restart_capture():
+    stop_sniffing()
+    user_filter = filter_var.get().strip()
+    if user_filter.lower().startswith("apply"):
+        filter_var.set("")
+    start_sniffing()
 
 
 # Clear table function
@@ -315,6 +386,120 @@ def list_interfaces():
     return interfaces
 
 
+# Apply package filter
+def apply_local_filter():
+    expression = filter_var.get().strip().lower()
+    clear_table()
+
+    def get_value(pkt, field):
+        try:
+            if field == "ip.src":
+                return pkt[scapy.IP].src if pkt.haslayer(scapy.IP) else None
+            elif field == "ip.dst":
+                return pkt[scapy.IP].dst if pkt.haslayer(scapy.IP) else None
+            elif field == "tcp.port":
+                if pkt.haslayer(scapy.TCP):
+                    return pkt[scapy.TCP].sport, pkt[scapy.TCP].dport
+            elif field == "udp.port":
+                if pkt.haslayer(scapy.UDP):
+                    return pkt[scapy.UDP].sport, pkt[scapy.UDP].dport
+            elif field == "proto":
+                if pkt.haslayer(scapy.TCP):
+                    return "TCP"
+                elif pkt.haslayer(scapy.UDP):
+                    return "UDP"
+                elif pkt.haslayer(scapy.ICMP):
+                    return "ICMP"
+                elif pkt.haslayer(scapy.ARP):
+                    return "ARP"
+                elif pkt.haslayer(scapy.IPv6):
+                    return "IPv6"
+            elif field == "icmp":
+                return pkt.haslayer(scapy.ICMP)
+            elif field == "ip":
+                return pkt.haslayer(scapy.IP)
+        except:
+            return None
+
+    def evaluate_condition(pkt, cond):
+        cond = cond.strip()
+        match = re.match(r"(\w+(\.\w+)*)\s*(==|!=)\s*(.+)", cond)
+        if match:
+            field, op, value = match.group(1), match.group(3), match.group(4).strip()
+            actual = get_value(pkt, field)
+            if isinstance(actual, tuple):  # sport, dport
+                if op == "==":
+                    return str(value) in map(str, actual)
+                elif op == "!=":
+                    return str(value) not in map(str, actual)
+            elif actual is not None:
+                if op == "==":
+                    return str(actual) == value
+                elif op == "!=":
+                    return str(actual) != value
+            return False
+        else:
+            # Simple keyword check like 'icmp', 'ip'
+            val = get_value(pkt, cond)
+            return val is True
+
+    def match(pkt):
+        try:
+            if expression == "":
+                return True
+            if " and " in expression:
+                return all(evaluate_condition(pkt, part) for part in expression.split(" and "))
+            elif " or " in expression:
+                return any(evaluate_condition(pkt, part) for part in expression.split(" or "))
+            else:
+                return evaluate_condition(pkt, expression)
+        except:
+            return False
+
+    for idx, pkt in enumerate(captured_packets):
+        if match(pkt):
+            try:
+                src = pkt[scapy.IP].src if pkt.haslayer(scapy.IP) else (
+                    pkt[scapy.IPv6].src if pkt.haslayer(scapy.IPv6) else "N/A")
+                dst = pkt[scapy.IP].dst if pkt.haslayer(scapy.IP) else (
+                    pkt[scapy.IPv6].dst if pkt.haslayer(scapy.IPv6) else "N/A")
+                proto = "TCP" if pkt.haslayer(scapy.TCP) else \
+                        "UDP" if pkt.haslayer(scapy.UDP) else \
+                        "ICMP" if pkt.haslayer(scapy.ICMP) else \
+                        "ARP" if pkt.haslayer(scapy.ARP) else \
+                        "IPv6" if pkt.haslayer(scapy.IPv6) else "N/A"
+                length = len(pkt)
+                info = format_packet_info(pkt)
+                time = f"{round(pkt.time - start_time, 6):.6f}" if start_time else "0.000000"
+
+                table.insert("", tk.END, values=(idx + 1, time, src, dst, proto, length, info), tags=(proto,))
+            except:
+                continue
+    table.yview_moveto(1)
+
+
+def convert_expression_to_bpf(expr):
+    expr = expr.strip().lower()
+    # Basic translates
+    expr = re.sub(r"ip\.src\s*==\s*", "src host ", expr)
+    expr = re.sub(r"ip\.dst\s*==\s*", "dst host ", expr)
+    expr = re.sub(r"tcp\.port\s*==\s*", "tcp port ", expr)
+    expr = re.sub(r"udp\.port\s*==\s*", "udp port ", expr)
+    expr = re.sub(r"proto\s*==\s*", "", expr)
+    expr = expr.replace("and", "and").replace("or", "or")
+
+    if expr == "icmp":
+        return "icmp"
+    if expr == "ip":
+        return "ip"
+    if expr == "tcp":
+        return "tcp"
+    if expr == "udp":
+        return "udp"
+
+    return expr
+
+
 # --------------------------------------------  GUI SETUP  --------------------------------------------
 root = tk.Tk()
 root.title("Packet Sniffer")
@@ -332,13 +517,7 @@ toolbar_start_btn.pack(side=tk.LEFT, padx=2)
 toolbar_stop_btn = ttk.Button(toolbar, text="■ Stop", command=stop_sniffing, state=tk.DISABLED)
 toolbar_stop_btn.pack(side=tk.LEFT, padx=2)
 
-
 # RESTART button
-def restart_capture():
-    stop_sniffing()
-    start_sniffing()
-
-
 toolbar_restart_btn = ttk.Button(toolbar, text="↻ Restart", command=restart_capture)
 toolbar_restart_btn.pack(side=tk.LEFT, padx=2)
 
@@ -365,6 +544,34 @@ filter_entry.insert(0, "Apply a display filter ... <<Ctrl+/>>")
 filter_entry.pack(fill=tk.X, padx=2, pady=5)
 
 
+# Dropdown cu filtre predefinite
+predefined_filters = [
+    "— Select quick filter —",
+    "ip",
+    "ip.src == 0.0.0.0",
+    "ip.dst == 8.8.8.8",
+    "tcp.port == 443",
+    "udp.port == 53",
+    "ip.src == 0.0.0.0 and tcp.port == 80",
+    "proto == tcp"
+]
+
+
+def on_filter_select(event):
+    selection = predefined_filter_var.get()
+    if selection != "— Select quick filter —":
+        filter_entry.delete(0, tk.END)
+        filter_entry.insert(0, selection)
+        filter_entry.config(foreground="black")
+
+
+predefined_filter_var = tk.StringVar()
+filter_dropdown = ttk.Combobox(filter_frame, textvariable=predefined_filter_var, values=predefined_filters, state="readonly", width=40)
+filter_dropdown.current(0)
+filter_dropdown.pack(pady=(0, 5))
+filter_dropdown.bind("<<ComboboxSelected>>", on_filter_select)
+
+
 # === Placeholder logic ===
 def on_entry_click(event):
     if filter_entry.get() == "Apply a display filter ... <<Ctrl+/>>":
@@ -382,7 +589,9 @@ filter_entry.bind("<FocusIn>", on_entry_click)
 filter_entry.bind("<FocusOut>", on_focusout)
 
 # === Trigger for starting capturing when pressing Enter ===
-filter_entry.bind("<Return>", lambda event: start_sniffing())
+# filter_entry.bind("<Return>", lambda event: start_sniffing())
+filter_entry.bind("<Return>", lambda event: apply_local_filter())
+
 
 # === Main frame (for tabel) ===
 frame = ttk.Frame(root, padding="10")

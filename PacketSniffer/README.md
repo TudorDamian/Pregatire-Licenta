@@ -1,10 +1,15 @@
-# Packet Sniffer – Exemple de Filtre
+# Packet Sniffer – Ghid pentru Filtrare
 
-Această aplicație acceptă filtre de tip **BPF (Berkeley Packet Filter)**, la fel ca Wireshark sau tcpdump.
+Această aplicație oferă două tipuri de filtre, în funcție de momentul aplicării:
 
 ---
 
-## Protocoale generale
+## 🔹 Filtrare în timp real (captură live)
+
+> Se aplică înainte de capturare, pe baza expresiei BPF (Berkeley Packet Filter).  
+> Sintaxa este compatibilă cu Wireshark/tcpdump.
+
+### ✅ Protocoale
 
 | Filtru      | Descriere                         |
 |-------------|-----------------------------------|
@@ -15,40 +20,32 @@ Această aplicație acceptă filtre de tip **BPF (Berkeley Packet Filter)**, la 
 | `tcp`       | Pachete TCP                       |
 | `udp`       | Pachete UDP                       |
 
----
+### ✅ Adrese IP
 
-## Adrese IP
+| Filtru                  | Descriere                          |
+|-------------------------|------------------------------------|
+| `src host 192.168.1.1`  | IP sursă specific                  |
+| `dst host 8.8.8.8`      | IP destinație specific             |
+| `host 10.0.0.5`         | IP sursă sau destinație            |
 
-| Filtru                  | Descriere                                    |
-|-------------------------|----------------------------------------------|
-| `src host 192.168.1.1`  | Doar sursa IP 192.168.1.1                    |
-| `dst host 8.8.8.8`      | Doar destinația IP 8.8.8.8                   |
-| `host 10.0.0.5`         | Orice sens (src sau dst) pentru 10.0.0.5     |
-
----
-
-## Porturi
+### ✅ Porturi
 
 | Filtru           | Descriere                        |
 |------------------|----------------------------------|
-| `tcp port 80`    | Pachete HTTP (port 80)           |
-| `udp port 53`    | Pachete DNS (port 53 UDP)        |
+| `tcp port 80`    | Pachete HTTP                     |
+| `udp port 53`    | Pachete DNS                      |
 | `port 443`       | Orice pachet pe port 443         |
 
----
-
-## Combinații logice
+### ✅ Combinații
 
 | Filtru                                          | Descriere                                 |
 |-------------------------------------------------|--------------------------------------------|
 | `tcp and port 443`                              | Pachete TCP doar pe portul 443            |
 | `ip and udp and port 53`                        | Pachete DNS peste UDP (IPv4)              |
 | `src host 192.168.0.10 and tcp port 22`         | SSH de la 192.168.0.10                    |
-| `host 192.168.1.1 and not icmp`                 | Orice de la/către 192.168.1.1, fără ICMP  |
+| `host 192.168.1.1 and not icmp`                 | Orice trafic fără ICMP                    |
 
----
-
-## Rețele
+### ✅ Rețele
 
 | Filtru                  | Descriere                          |
 |-------------------------|------------------------------------|
@@ -57,14 +54,46 @@ Această aplicație acceptă filtre de tip **BPF (Berkeley Packet Filter)**, la 
 
 ---
 
-## Alte exemple utile
+## 🔹 Filtrare locală (după captură)
 
-- `tcp[tcpflags] & tcp-syn != 0` → doar SYN (început conexiune TCP)
-- `ether src 00:11:22:33:44:55` → pachete de la MAC specific
+> Se aplică după oprirea capturii, pe pachetele deja salvate în memorie.
+
+### ✅ Suportă sintaxă extinsă, inclusiv:
+- `==`, `!=`
+- `and`, `or`
+- expresii pe câmpuri IP, porturi și protocoale
+
+### ✅ Exemple:
+
+| Filtru                                          | Descriere                                 |
+|-------------------------------------------------|--------------------------------------------|
+| `ip.src == 192.168.1.10`                        | Pachete cu sursa 192.168.1.10              |
+| `ip.dst == 8.8.8.8`                             | Pachete către Google DNS                   |
+| `tcp.port == 443`                               | HTTPS                                      |
+| `udp.port != 53`                                | Pachete UDP diferite de DNS                |
+| `proto == tcp`                                  | Doar TCP                                   |
+| `ip and icmp`                                   | Pachete ICMP în IPv4                       |
+| `ip.src == 192.168.0.1 and tcp.port == 80`      | HTTP de la adresa locală                   |
 
 ---
 
-## Notă
+## ℹ️ Alte detalii
 
-- Nu se folosesc: `==`, `!=`, `contains` – acestea nu sunt suportate în BPF.
-- Filtrul este aplicat la nivel de captură, nu post-procesare.
+- Când apeși **Enter** în câmpul de filtrare după Stop → se aplică filtrarea locală.
+- Când apeși **Start** sau **Restart**, dacă filtrul este complet, se aplică la captură (live).
+- Placeholderul „Apply a display filter…” nu declanșează filtrare dacă este neschimbat.
+
+---
+
+## ❗ Limitări
+
+- În captura live nu sunt suportate: `!=`, `>`, `contains`, `startswith` etc.
+- Acestea sunt disponibile doar în filtrarea locală (internă, în aplicație).
+
+---
+
+## 🧠 Recomandare
+
+Folosește:
+- expresii tip `ip.src == x.x.x.x and tcp.port == y` pentru filtrare locală
+- expresii `src host x.x.x.x and tcp port y` pentru captura live
