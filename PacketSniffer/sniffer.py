@@ -130,7 +130,6 @@ def packet_callback(packet):
             # Properly format the info string
             info = f"{src_port} -> {dst_port} [{flags_str}] Seq={relative_seq} Ack={relative_ack} Win={win} Len={tcp_len}"
 
-
         # Check for UDP
         elif packet.haslayer(scapy.UDP):
             proto = "UDP"
@@ -166,7 +165,7 @@ def show_packet_details(event):
     if 0 <= index < len(captured_packets):
         pkt = captured_packets[index]
 
-        # === Fereastră nouă pentru detalii ===
+        # === New window for package details ===
         detail_win = tk.Toplevel(root)
         detail_win.title(f"Packet #{index + 1} Details")
         detail_win.geometry("1000x600")
@@ -210,7 +209,7 @@ def show_packet_details(event):
         raw_bytes = bytes(pkt)
         hex_dump = ""
         for i in range(0, len(raw_bytes), 16):
-            chunk = raw_bytes[i:i+16]
+            chunk = raw_bytes[i:i + 16]
             hex_part = ' '.join(f"{b:02X}" for b in chunk)
             ascii_part = ''.join((chr(b) if 32 <= b < 127 else '.') for b in chunk)
             hex_dump += f"{i:04X}  {hex_part:<48}  {ascii_part}\n"
@@ -248,7 +247,6 @@ def start_capture(interface, duration):
     toolbar_start_btn.config(state=tk.DISABLED)
     toolbar_stop_btn.config(state=tk.NORMAL)
 
-    # Obține filtrul introdus (dacă este diferit de placeholder)
     user_filter = filter_var.get().strip()
     if user_filter.lower().startswith("apply"):
         user_filter = ""
@@ -262,7 +260,7 @@ def start_capture(interface, duration):
             store=False,
             prn=packet_callback,
             stop_filter=lambda x: not sniffing,
-            filter=user_filter  # aici aplicăm filtrul!
+            filter=user_filter
         )
     except Exception as e:
         print(f"Error when applying filter: {e}")
@@ -322,7 +320,7 @@ root = tk.Tk()
 root.title("Packet Sniffer")
 root.geometry("1210x710")
 
-# === Toolbar Frame (sus) ===
+# === Toolbar Frame (up) ===
 toolbar = ttk.Frame(root, padding=5)
 toolbar.pack(side=tk.TOP, fill=tk.X)
 
@@ -355,10 +353,9 @@ toolbar_interface_dropdown.pack(side=tk.LEFT)
 toolbar_export_all_btn = ttk.Button(toolbar, text="💾 Export to .pcap", command=export_all_packets)
 toolbar_export_all_btn.pack(side=tk.RIGHT)
 
-
 populate_interfaces()
 
-# === Display Filter Frame (sub toolbar) ===
+# === Display Filter Frame (under toolbar) ===
 filter_frame = ttk.Frame(root, padding=(10, 0))
 filter_frame.pack(fill=tk.X)
 
@@ -384,14 +381,14 @@ def on_focusout(event):
 filter_entry.bind("<FocusIn>", on_entry_click)
 filter_entry.bind("<FocusOut>", on_focusout)
 
-# === Trigger captură la Enter ===
+# === Trigger for starting capturing when pressing Enter ===
 filter_entry.bind("<Return>", lambda event: start_sniffing())
 
-# === Frame principal (pentru tabel) ===
+# === Main frame (for tabel) ===
 frame = ttk.Frame(root, padding="10")
 frame.pack(fill=tk.BOTH, expand=True)
 
-# === Tabel pentru afișarea pachetelor ===
+# === Tabel for displaying packages ===
 table_frame = ttk.Frame(frame)
 table_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -409,7 +406,7 @@ scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=table.yview)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 table.configure(yscrollcommand=scrollbar.set)
 
-# === Color tags pentru protocoale ===
+# === Color tags for protocols ===
 table.tag_configure("TCP", background="lightblue")
 table.tag_configure("UDP", background="lightgreen")
 table.tag_configure("ICMP", background="lightyellow")
