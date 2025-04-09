@@ -42,3 +42,14 @@ Pentru 09.04.2025 ora 12:30:
 	-testare cu iperf
 	-adaugare referinte, fisier separate pentru bibliografie
 	-avansare cu implementare si daca se poate capoitolul 4
+
+
+Pentru 30.04.2025 ora 12:30:
+	-capitolul 4 pus la punct facut pe doua parti analiza si fundamentare(uita-te pe ghid si pe model licenta Damaris)
+	-implementare cu ELK cat de putin
+https://www.sciencedirect.com/science/article/pii/S1742287619302002
+https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=fe6b8e45f8f5c1fb404b91634b31a43a7a261f27
+
+
+
+
