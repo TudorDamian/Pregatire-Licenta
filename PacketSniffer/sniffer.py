@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 import threading
+import psutil
 import scapy.all as scapy
 from scapy.all import wrpcap
-import psutil
 from datetime import datetime
 import re
 
