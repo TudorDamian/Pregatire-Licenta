@@ -10,6 +10,7 @@ from parser import parse_pcap, get_packet_layers, hex_dump, get_packet_raw
 from fastapi import Query
 from scapy.layers.inet import IP, TCP, UDP, ICMP
 import re
+import json
 
 app = FastAPI()
 
@@ -22,12 +23,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = "captures"
+UPLOAD_DIR = "elk/captures"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Global store (simplu, pt demo; în producție folosește Redis sau DB)
 parsed_data = {}
 packet_store = {}
+
+
+def save_to_elk_format(file_id: str, packets: list):
+    output_path = f"{UPLOAD_DIR}/{file_id}.json"
+    with open(output_path, "w") as f:
+        for pkt in packets:
+            f.write(json.dumps(pkt) + "\n")
+    return output_path
 
 
 # Upload .pcap, parsează și stochează datele.
@@ -44,6 +53,8 @@ async def upload_pcap(file: UploadFile = File(...)):
 
     packets = scapy.rdpcap(save_path)
     parsed = parse_pcap(save_path)
+    elk_path = save_to_elk_format(file_id, parsed)
+    print(f"[ELK] Saved parsed data to {elk_path}")
 
     parsed_data[file_id] = parsed
     packet_store[file_id] = packets
