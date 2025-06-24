@@ -6,10 +6,13 @@ import scapy.all as scapy
 from scapy.all import wrpcap
 from datetime import datetime
 import re
+import json
+import os
+
 
 # Global variables
 global start_time, sniffing, sniff_thread, capture_duration, packet_counter
-
+EXPORT_DIR = "./captures"
 
 # Protocol mapping
 def get_protocol_name(proto_number):
@@ -46,6 +49,69 @@ connection_isn = {}
 
 # Captured packages list for saving
 captured_packets = []
+
+
+def export_packet_to_json(packet, index):
+    try:
+        pkt_info = {
+            "frame": {
+                "number": index,
+                "time_epoch": packet.time,
+                "len": len(packet),
+                "protocols": packet.summary()
+            },
+            "eth": {},
+            "ip": {},
+            "tcp": {},
+            "udp": {},
+            "layers": {}
+        }
+
+        if packet.haslayer(scapy.Ether):
+            pkt_info["eth"] = {
+                "src": packet[scapy.Ether].src,
+                "dst": packet[scapy.Ether].dst,
+                "type": hex(packet[scapy.Ether].type)
+            }
+
+        if packet.haslayer(scapy.IP):
+            pkt_info["ip"] = {
+                "version": 4,
+                "src": packet[scapy.IP].src,
+                "dst": packet[scapy.IP].dst,
+                "ttl": packet[scapy.IP].ttl,
+                "proto": packet[scapy.IP].proto
+            }
+
+        if packet.haslayer(scapy.TCP):
+            pkt_info["tcp"] = {
+                "sport": packet[scapy.TCP].sport,
+                "dport": packet[scapy.TCP].dport,
+                "flags": int(packet[scapy.TCP].flags),
+                "seq": packet[scapy.TCP].seq,
+                "ack": packet[scapy.TCP].ack,
+                "window": packet[scapy.TCP].window,
+                "len": len(packet[scapy.TCP].payload)
+            }
+
+        if packet.haslayer(scapy.UDP):
+            pkt_info["udp"] = {
+                "sport": packet[scapy.UDP].sport,
+                "dport": packet[scapy.UDP].dport,
+                "len": packet[scapy.UDP].len
+            }
+
+        # Optional: add raw payload
+        pkt_info["layers"]["raw_payload"] = packet.original.hex()
+
+        # Ensure directory exists
+        os.makedirs(EXPORT_DIR, exist_ok=True)
+        filename = f"{EXPORT_DIR}/packet_{index}_{int(packet.time)}.json"
+        with open(filename, "w") as f:
+            json.dump(pkt_info, f, indent=2)
+
+    except Exception as e:
+        print(f"[ERROR] Failed to export JSON for packet {index}: {e}")
 
 
 # Packet callback function
@@ -149,6 +215,7 @@ def packet_callback(packet):
             info = f"IPv6 Packet"
 
         captured_packets.append(packet)
+        export_packet_to_json(packet, packet_counter)
 
         # Insert the packet details into the table
         table.insert("", tk.END, values=(packet_counter, time, src, dst, proto, length, info), tags=(proto,))
