@@ -1,3 +1,0 @@
-{"id": 1, "timestamp": 0.001, "source": "10.0.0.1", "destination": "10.0.0.2", "protocol": "TCP", "length": 100, "info": "SYN"}
-{"id": 2, "timestamp": 0.002, "source": "10.0.0.2", "destination": "10.0.0.1", "protocol": "TCP", "length": 80, "info": "SYN, ACK"}
-{"id": 3, "timestamp": 0.003, "source": "10.0.0.1", "destination": "10.0.0.2", "protocol": "TCP", "length": 60, "info": "ACK"}
