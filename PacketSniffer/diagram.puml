@@ -1,0 +1,33 @@
+@startuml
+
+class PacketCapture {
+    +start_capture()
+    +populate_interfaces()
+    +get_interface_names()
+    +list_interfaces()
+    +start_sniffing()
+    +stop_sniffing()
+    +restart_capture()
+}
+
+class PacketProcessor {
+    +process_queue()
+    +process_packet()
+}
+
+class PacketExport {
+    +packet_to_dict()
+    +export_all_packets_json()
+    +view_graphs()
+}
+
+class Interface {
+    +show_packet_details()
+    +setup_gui()
+}
+
+PacketCapture --> PacketProcessor
+PacketProcessor --> PacketExport
+Interface --> PacketProcessor
+
+@enduml
