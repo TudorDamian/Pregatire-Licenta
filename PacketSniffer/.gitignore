@@ -1,4 +1,5 @@
-.DS_Store
-.env
-.idea/*
-.vscode/*
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
