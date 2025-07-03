@@ -22,6 +22,11 @@ def clear_table():
 def start_callback():
     start_sniffing(interface_var, clear_table, captured_packets, packet_queue, start_btn, stop_btn)
 
+    root.after(10, lambda: process_queue(
+        packet_queue, table, captured_packets, packet_map, root,
+        format_info, start_time_ref, packet_counter_ref, table_data_map
+    ))
+
 
 def stop_callback():
     stop_sniffing(lambda pkt: process_packet(pkt, table, captured_packets, packet_map, format_info, start_time_ref,
@@ -431,6 +436,8 @@ def handle_filter_key(event=None):
 filter_entry.bind("<Return>", handle_filter_key)
 filter_entry_widget = filter_var
 populate_interfaces(interface_dropdown, interface_var)
-root.after(10, lambda: process_queue(packet_queue, table, captured_packets, packet_map, root,
-                                     format_info, start_time_ref, packet_counter_ref), table_data_map)
+root.after(10, lambda: process_queue(
+        packet_queue, table, captured_packets, packet_map, root,
+        format_info, start_time_ref, packet_counter_ref, table_data_map
+    ))
 root.mainloop()

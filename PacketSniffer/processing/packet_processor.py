@@ -1,5 +1,5 @@
 def process_queue(packet_queue, table, captured_packets, packet_map, root, format_info,
-                  start_time_ref, packet_counter_ref):
+                  start_time_ref, packet_counter_ref, table_data_map):
     max_packets = 800
 
     for _ in range(max_packets):
@@ -36,6 +36,7 @@ def process_queue(packet_queue, table, captured_packets, packet_map, root, forma
             captured_packets.append(packet)
             packet._gui_index = packet_counter_ref[0]
             packet_map[packet_counter_ref[0]] = packet
+            table_data_map[packet_counter_ref[0]] = values
 
         except Exception as e:
             print(f"[ERROR] Processing packet #{packet_counter_ref[0]}: {e}")
@@ -44,7 +45,7 @@ def process_queue(packet_queue, table, captured_packets, packet_map, root, forma
         print(f"[INFO] Queue backlog: {packet_queue.qsize()} packets remaining.")
 
     root.after(10, lambda: process_queue(packet_queue, table, captured_packets, packet_map, root, format_info,
-                                         start_time_ref, packet_counter_ref))
+                                         start_time_ref, packet_counter_ref, table_data_map))
 
 
 def process_packet(packet, table, captured_packets, packet_map, format_info, start_time_ref,

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
+import os
 
 
 def show_packet_details(table, packet_map, root):
@@ -98,6 +99,8 @@ def setup_gui(start_callback, stop_callback, restart_callback, export_json_callb
     root = tk.Tk()
     root.title("Packet Sniffer")
     root.geometry("1210x710")
+    ico_path = os.path.join(os.path.dirname(__file__), '../assets/icon.ico')
+    root.iconbitmap(default=ico_path)
 
     toolbar = ttk.Frame(root, padding=5)
     toolbar.pack(side=tk.TOP, fill=tk.X)
