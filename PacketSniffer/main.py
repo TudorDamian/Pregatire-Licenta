@@ -1,5 +1,6 @@
 import queue
 import re
+import webbrowser
 from capture.packet_capture import populate_interfaces, start_sniffing, stop_sniffing, restart_capture
 from processing.packet_processor import process_queue, process_packet
 from file_manager.packet_export import export_all_packets_json, view_graphs
@@ -20,6 +21,9 @@ def clear_table():
 
 
 def start_callback():
+    packet_counter_ref[0] = 0
+    start_time_ref[0] = None
+
     start_sniffing(interface_var, clear_table, captured_packets, packet_queue, start_btn, stop_btn)
 
     root.after(10, lambda: process_queue(
@@ -61,6 +65,7 @@ def upload_pcap_callback():
 
 
 def view_graphs_callback():
+    webbrowser.open("http://localhost:5601/")
     view_graphs(captured_packets)
 
 
