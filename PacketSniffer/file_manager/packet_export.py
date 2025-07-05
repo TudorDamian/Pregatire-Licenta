@@ -8,7 +8,7 @@ os.makedirs(EXPORT_JSON_DIR, exist_ok=True)
 
 def packet_to_dict(pkt):
     pkt_dict = {
-        "timestamp": pkt.sniff_time.isoformat() + "Z",
+        "@timestamp": pkt.sniff_time.isoformat() + "Z",
         "length": pkt.length,
         "highest_layer": pkt.highest_layer,
     }
